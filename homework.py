@@ -32,7 +32,7 @@ handler.setFormatter(formatter)
 
 
 def send_message(bot, message):
-    '''Отправляет сообщение в телеграмм_бот.'''
+    """Отправляет сообщение в телеграмм_бот."""
     try:
         bot.send_message(SECRET_CHAT_ID, text=message)
     except Exception as error:
@@ -43,7 +43,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(url, current_timestamp):
-    '''Отправляет запрос к API домашки на эндпоинт.'''
+    """Отправляет запрос к API домашки на эндпоинт."""
     headers = {'Authorization': f'OAuth {SECRET_PRACTICUM_TOKEN}'}
     payload = {'from_date': current_timestamp}
     try:
@@ -64,18 +64,22 @@ def get_api_answer(url, current_timestamp):
 
 
 def parse_status(homework):
-    '''Анализирует статус проверки.'''
+    """Анализирует статус проверки."""
     if homework['status'] in HOMEWORK_STATUSES:
         verdict = HOMEWORK_STATUSES[homework['status']]
         homework_name = homework.get('homework_name', 'latest homework')
-        return f'Изменился статус проверки работы "{homework_name}". {verdict}.'
+        return ('Изменился статус проверки работы '
+                f'"{homework_name}". {verdict}.')
     else:
-        logger.error(f'Недокументированный статус проверки работы {homework.get("status")}.')
-        return f'Недокументированный статус проверки работы {homework.get("status")}.'
+        logger.error('Недокументированный статус '
+                     f'проверки работы {homework.get("status")}.')
+        return ('Недокументированный статус проверки'
+                f' работы {homework.get("status")}.')
 
 
 def check_response(response):
-    '''Проверяет полученный ответ на корректность; провереят, не изменился ли статус.'''
+    """Проверяет полученный ответ на корректность;
+       проверяет, не изменился ли статус."""
     homeworks = response.get('homeworks')
     if homeworks is None:
         logger.error('Ключ "homeworks" не существует.'
@@ -96,7 +100,7 @@ def check_response(response):
 
 
 def main():
-    ''' Запускаем выполнение кода для телеграмм_бота.'''
+    """Запускаем выполнение кода для телеграмм_бота."""
     for critical_env in [SECRET_TELEGRAM_TOKEN,
                          SECRET_PRACTICUM_TOKEN, SECRET_CHAT_ID]:
         if critical_env is None:
