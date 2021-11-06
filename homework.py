@@ -78,8 +78,10 @@ def parse_status(homework):
 
 
 def check_response(response):
-    """Проверяет полученный ответ на корректность.
-       Проверяет, не изменился ли статус.
+    """Проверяет полученный ответ.
+
+    на корректность
+    не изменился ли статус
     """
     homeworks = response.get('homeworks')
     if homeworks is None:
