@@ -69,7 +69,7 @@ def parse_status(homework):
         verdict = HOMEWORK_STATUSES[homework['status']]
         homework_name = homework.get('homework_name', 'latest homework')
         return ('Изменился статус проверки работы '
-                f'"{homework_name}". {verdict}.')
+                f'"{homework_name}". {verdict}')
     else:
         logger.error('Недокументированный статус '
                      f'проверки работы {homework.get("status")}.')
