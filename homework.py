@@ -94,7 +94,7 @@ def check_response(response):
         raise KeyError('Ключ "homeworks" не существует. '
                        f'Все ключи {response.keys()}.')
     if isinstance(homeworks, list) and len(homeworks) == 0:
-        return homeworks           #'Проект пока не проверяется.'
+        return homeworks  
     if homeworks[0]['status'] not in VERDICTS:
         logger.error('Недокументированный статус домашней работы в ответе '
                      f'от API: {homeworks[0]["status"]}.')
