@@ -35,6 +35,7 @@ handler.setFormatter(formatter)
 
 class UnreachableEndpointException(Exception):
     """Исключение при недоступном Эндпоинте."""
+
     pass
 
 
