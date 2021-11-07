@@ -1,3 +1,4 @@
+from http import HTTPStatus
 import logging
 import os
 import time
@@ -14,8 +15,9 @@ SECRET_CHAT_ID = os.getenv('CHAT_ID')
 
 RETRY_TIME = 300
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
+HEADERS = {'Authorization': f'OAuth {SECRET_PRACTICUM_TOKEN}'}
 
-HOMEWORK_STATUSES = {
+VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена, в ней нашлись ошибки.'
@@ -31,6 +33,10 @@ formatter = logging.Formatter(
 handler.setFormatter(formatter)
 
 
+class UnreachableEndpointException(Exception):
+    pass
+
+
 def send_message(bot, message):
     """Отправляет сообщение в телеграмм_бот."""
     try:
@@ -38,35 +44,33 @@ def send_message(bot, message):
     except Exception as error:
         logger.error(f'Ошибка при отправке сообщения: {error}.',
                      exc_info=True)
-        raise error
     logger.info(f'Удачно отправленное сообщение: "{message}".')
 
 
 def get_api_answer(url, current_timestamp):
     """Отправляет запрос к API домашки на эндпоинт."""
-    headers = {'Authorization': f'OAuth {SECRET_PRACTICUM_TOKEN}'}
     payload = {'from_date': current_timestamp}
     try:
-        response = requests.get(url, headers=headers,
+        response = requests.get(url, headers=HEADERS,
                                 params=payload
                                 )
     except Exception as error:
         logger.error(f'Ошибка при запросе к основному API: {error}.',
                      exc_info=True)
         raise error
-    if response.status_code == 200:
+    if response.status_code == HTTPStatus.OK:
         response = response.json()
         return response
 
     logger.error(f'Сбой в работе программы: Эндпоинт {ENDPOINT} '
                  f'недоступен. Код ответа API: {response.status_code}.')
-    raise
+    raise UnreachableEndpointException('Недоступен Эндпоинт.')
 
 
 def parse_status(homework):
     """Анализирует статус проверки."""
-    if homework['status'] in HOMEWORK_STATUSES:
-        verdict = HOMEWORK_STATUSES[homework['status']]
+    if homework['status'] in VERDICTS:
+        verdict = VERDICTS[homework['status']]
         homework_name = homework.get('homework_name', 'latest homework')
         return ('Изменился статус проверки работы '
                 f'"{homework_name}". {verdict}')
@@ -89,17 +93,16 @@ def check_response(response):
                      f' Все ключи {response.keys()}.')
         raise KeyError('Ключ "homeworks" не существует. '
                        f'Все ключи {response.keys()}.')
-    elif isinstance(homeworks, list) and len(homeworks) == 0:
-        return 'Проект пока не проверяется.'
-    elif homeworks[0]['status'] not in HOMEWORK_STATUSES:
+    if isinstance(homeworks, list) and len(homeworks) == 0:
+        return homeworks           #'Проект пока не проверяется.'
+    if homeworks[0]['status'] not in VERDICTS:
         logger.error('Недокументированный статус домашней работы в ответе '
                      f'от API: {homeworks[0]["status"]}.')
         raise ValueError
-    elif isinstance(homeworks, list) and len(homeworks) > 0:
+    if isinstance(homeworks, list) and len(homeworks) > 0:
         return parse_status(homeworks[0])
-    else:
-        logger.error(f'Неверный тип значения по ключу homeworks {homeworks}.')
-        raise TypeError('Неверный тип значения по ключу homeworks.')
+    logger.error(f'Неверный тип значения по ключу homeworks {homeworks}.')
+    raise TypeError('Неверный тип значения по ключу homeworks.')
 
 
 def main():
@@ -109,13 +112,10 @@ def main():
         if critical_env is None:
             logger.critical('Отсутствует обязательная переменная '
                             f'окружения: {critical_env}.')
-            raise Exception('Отсутствует обязательная переменная '
-                            f'окружения: {critical_env}.')
     try:
         bot = telegram.Bot(token=SECRET_TELEGRAM_TOKEN)
     except Exception as error:
         logger.error(f'Ошибка при создании бота {error}')
-        raise error
     current_timestamp = int(time.time())
     status = 'Проект пока не проверяется.'
     while True:
