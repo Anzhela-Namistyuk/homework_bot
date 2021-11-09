@@ -1,3 +1,4 @@
+import sys
 from http import HTTPStatus
 import logging
 import os
@@ -39,6 +40,12 @@ class UnreachableEndpointException(Exception):
     pass
 
 
+class EmptyAnswerException(Exception):
+    """Исключение если пришел пустом ответе с Эндпоинта."""
+
+    pass
+
+
 def send_message(bot, message):
     """Отправляет сообщение в телеграмм_бот."""
     try:
@@ -46,6 +53,7 @@ def send_message(bot, message):
     except Exception as error:
         logger.error(f'Ошибка при отправке сообщения: {error}.',
                      exc_info=True)
+        sys.exit()
     logger.info(f'Удачно отправленное сообщение: "{message}".')
 
 
@@ -60,13 +68,13 @@ def get_api_answer(url, current_timestamp):
         logger.error(f'Ошибка при запросе к основному API: {error}.',
                      exc_info=True)
         raise error
-    if response.status_code == HTTPStatus.OK:
-        response = response.json()
-        return response
 
-    logger.error(f'Сбой в работе программы: Эндпоинт {ENDPOINT} '
-                 f'недоступен. Код ответа API: {response.status_code}.')
-    raise UnreachableEndpointException('Недоступен Эндпоинт.')
+    if response.status_code == HTTPStatus.OK:
+        return response.json()
+    description_error = (f'Сбой в работе программы: Эндпоинт {ENDPOINT} '
+                         f'недоступен. Код ответа API: {response.status_code}.')
+    logger.error(description_error)
+    raise UnreachableEndpointException(description_error)
 
 
 def parse_status(homework):
@@ -76,11 +84,6 @@ def parse_status(homework):
         homework_name = homework.get('homework_name', 'latest homework')
         return ('Изменился статус проверки работы '
                 f'"{homework_name}". {verdict}')
-    else:
-        logger.error('Недокументированный статус '
-                     f'проверки работы {homework.get("status")}.')
-        return ('Недокументированный статус проверки'
-                f' работы {homework.get("status")}.')
 
 
 def check_response(response):
@@ -89,22 +92,36 @@ def check_response(response):
     на корректность
     не изменился ли статус
     """
+
+    if not response:
+        description_error = f'Пришел пустой ответ с Эндпоинта: {ENDPOINT}'
+        logger.error(description_error)
+        raise EmptyAnswerException(description_error)
+
     homeworks = response.get('homeworks')
+
     if homeworks is None:
-        logger.error('Ключ "homeworks" не существует.'
-                     f' Все ключи {response.keys()}.')
-        raise KeyError('Ключ "homeworks" не существует. '
-                       f'Все ключи {response.keys()}.')
+        description_error = ('Ключ "homeworks" не существует.'
+                             f' Все ключи {response.keys()}.')
+        logger.error(description_error)
+        raise KeyError(description_error)
+
     if isinstance(homeworks, list) and len(homeworks) == 0:
         return homeworks
-    if homeworks[0]['status'] not in VERDICTS:
-        logger.error('Недокументированный статус домашней работы в ответе '
-                     f'от API: {homeworks[0]["status"]}.')
-        raise ValueError
+
+    if homeworks[0].get("status") not in VERDICTS:
+        description_error = ('Недокументированный статус домашней работы в '
+                             f'ответе от API: {homeworks[0].get("status")}.')
+        logger.error(description_error)
+        raise ValueError(description_error)
+
     if isinstance(homeworks, list) and len(homeworks) > 0:
         return parse_status(homeworks[0])
-    logger.error(f'Неверный тип значения по ключу homeworks {homeworks}.')
-    raise TypeError('Неверный тип значения по ключу homeworks.')
+
+    description_error = ('Неверный тип значения по '
+                         f'ключу homeworks {homeworks}.')
+    logger.error(description_error)
+    raise TypeError(description_error)
 
 
 def main():
@@ -114,17 +131,20 @@ def main():
         if critical_env is None:
             logger.critical('Отсутствует обязательная переменная '
                             f'окружения: {critical_env}.')
+            sys.exit()
     try:
         bot = telegram.Bot(token=SECRET_TELEGRAM_TOKEN)
+        send_message(bot, 'Приложение запущено')
     except Exception as error:
         logger.error(f'Ошибка при создании бота {error}')
+        sys.exit()
     current_timestamp = int(time.time())
     status = 'Проект пока не проверяется.'
     while True:
         try:
             response = get_api_answer(ENDPOINT, current_timestamp)
             new_status = check_response(response)
-            if new_status != status:
+            if new_status != status and new_status != []:
                 send_message(bot, new_status)
                 status = new_status
             current_timestamp = int(time.time())
