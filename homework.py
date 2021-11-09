@@ -53,7 +53,7 @@ def send_message(bot, message):
     except Exception as error:
         logger.error(f'Ошибка при отправке сообщения: {error}.',
                      exc_info=True)
-        sys.exit()
+
     logger.info(f'Удачно отправленное сообщение: "{message}".')
 
 
@@ -85,6 +85,12 @@ def parse_status(homework):
         homework_name = homework.get('homework_name', 'latest homework')
         return ('Изменился статус проверки работы '
                 f'"{homework_name}". {verdict}')
+    else:
+
+        logger.error('Недокументированный статус ' 
+                     f'проверки работы {homework.get("status")}.')
+        return ('Недокументированный статус проверки' 
+                f' работы {homework.get("status")}.')
 
 
 def check_response(response):
