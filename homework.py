@@ -72,7 +72,8 @@ def get_api_answer(url, current_timestamp):
     if response.status_code == HTTPStatus.OK:
         return response.json()
     description_error = (f'Сбой в работе программы: Эндпоинт {ENDPOINT} '
-                         f'недоступен. Код ответа API: {response.status_code}.')
+                         'недоступен. Код ответа API: '
+                         f'{response.status_code}.')
     logger.error(description_error)
     raise UnreachableEndpointException(description_error)
 
@@ -92,7 +93,6 @@ def check_response(response):
     на корректность
     не изменился ли статус
     """
-
     if not response:
         description_error = f'Пришел пустой ответ с Эндпоинта: {ENDPOINT}'
         logger.error(description_error)
