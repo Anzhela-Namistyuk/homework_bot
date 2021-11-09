@@ -87,10 +87,10 @@ def parse_status(homework):
                 f'"{homework_name}". {verdict}')
     else:
 
-        logger.error('Недокументированный статус ' 
+        logger.error('Недокументированный статус '
                      f'проверки работы {homework.get("status")}.')
-        return ('Недокументированный статус проверки' 
-                f' работы {homework.get("status")}.')
+        return ('Недокументированный статус проверки '
+                f'работы {homework.get("status")}.')
 
 
 def check_response(response):
