@@ -145,7 +145,7 @@ def main():
         logger.error(f'Ошибка при создании бота {error}')
         sys.exit()
     current_timestamp = int(time.time())
-    status = 'Проект пока не проверяется.'
+    # status = 'Проект пока не проверяется.'
     while True:
         try:
             response = get_api_answer(ENDPOINT, current_timestamp)
